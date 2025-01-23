@@ -1,0 +1,15 @@
+artifact_uri: file:///home/ayush22/projects/mlops/house-pricing/mlruns/0/00bc3c9944944d02a3c83f2744fe2148/artifacts
+end_time: 1737599884421
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 00bc3c9944944d02a3c83f2744fe2148
+run_name: placid-gull-214
+run_uuid: 00bc3c9944944d02a3c83f2744fe2148
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1737599880946
+status: 3
+tags: []
+user_id: ayush22
