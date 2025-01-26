@@ -24,6 +24,15 @@ class Features(BaseModel):
     population: float
     address: str
 
+def add_numbers(a, b):
+    """
+    Add two numbers.
+    :param a: First number
+    :param b: Second number
+    :return: Sum of a and b
+    """
+    return a + b
+
 @app.post("/predict")
 def predict(features: Features):
     features_dict = {

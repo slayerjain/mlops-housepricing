@@ -1,82 +1,90 @@
-import pandas as pd
-import numpy as np
-from src.logger.logging import logging
-from src.exception.exception import customexception
-from src.utils.utils import save_object
 import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from sklearn.preprocessing import StandardScaler , OneHotEncoder
+import numpy as np
+import pandas as pd
 from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+
+from src.logger.logging import logging
+from src.exception.exception import customexception
+from src.utils.utils import save_object
 
 @dataclass
 class DataTransformationConfig:
-    preprocessor_obj_file_path=os.path.join('artifacts','preprocessor.pkl')
-
+    preprocessor_obj_file_path: str = os.path.join('artifacts', 'preprocessor.pkl')
 
 class DataTransformation:
     def __init__(self):
-        self.data_transformation_config=DataTransformationConfig()
+        self.data_transformation_config = DataTransformationConfig()
 
-    def initialize_data_transformation(self,train_path,test_path):
+    def initialize_data_transformation(self, train_path: str, test_path: str):
+        """
+        Reads training and testing datasets, preprocesses the data, and saves the preprocessor object.
+
+        Parameters:
+        - train_path: str : Path to the training dataset.
+        - test_path: str : Path to the testing dataset.
+
+        Returns:
+        - train_arr: np.ndarray : Preprocessed training data.
+        - test_arr: np.ndarray : Preprocessed testing data.
+        """
         try:
-            train_df=pd.read_csv(train_path)
-            test_df=pd.read_csv(test_path)
-            
-            logging.info("read train and test data complete")
-            logging.info(f'Train Dataframe Head : \n{train_df.head().to_string()}')
-            logging.info(f'Test Dataframe Head : \n{test_df.head().to_string()}')
-                        
+            # Load the datasets
+            train_df = pd.read_csv(train_path)
+            test_df = pd.read_csv(test_path)
+            logging.info("Successfully read train and test datasets.")
+
+            # Log dataset heads
+            logging.info(f'Train Dataframe Head:\n{train_df.head().to_string()}')
+            logging.info(f'Test Dataframe Head:\n{test_df.head().to_string()}')
+
+            # Define target column and input features
             target_column_name = 'Price'
-            drop_columns = [target_column_name]
-            
-            input_feature_train_df = train_df.drop(columns=drop_columns,axis=1)
-            target_feature_train_df=train_df[target_column_name]
-            
-            
-            input_feature_test_df=test_df.drop(columns=drop_columns,axis=1)
-            target_feature_test_df=test_df[target_column_name]
-            
-            # Identify categorical columns
+            input_feature_train_df = train_df.drop(columns=[target_column_name])
+            target_feature_train_df = train_df[target_column_name]
+
+            input_feature_test_df = test_df.drop(columns=[target_column_name])
+            target_feature_test_df = test_df[target_column_name]
+
+            # Identify categorical and numerical columns
             categorical_columns = input_feature_train_df.select_dtypes(include=['object']).columns.tolist()
             numerical_columns = input_feature_train_df.select_dtypes(exclude=['object']).columns.tolist()
-            
+
+            # Define the preprocessor
             preprocessor = ColumnTransformer(
                 transformers=[
                     ('num', StandardScaler(), numerical_columns),
                     ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_columns)
                 ]
             )
-            
-            logging.info("Applying preprocessing object on training and testing datasets.")
-            # Fit & transform the train set
+
+            logging.info("Fitting and transforming datasets with the preprocessor.")
+
+            # Apply transformations
             input_feature_train_arr = preprocessor.fit_transform(input_feature_train_df).toarray()
             input_feature_test_arr = preprocessor.transform(input_feature_test_df).toarray()
-            
-            # Convert target variable to 2D array
-            target_feature_train_df = np.array(target_feature_train_df).reshape(-1, 1)
-            target_feature_test_df = np.array(target_feature_test_df).reshape(-1, 1)
 
-            # Ensure array shapes match before concatenation
-            train_arr = np.c_[input_feature_train_arr, target_feature_train_df]
-            test_arr = np.c_[input_feature_test_arr, target_feature_test_df]
+            # Reshape target features
+            target_feature_train_arr = target_feature_train_df.values.reshape(-1, 1)
+            target_feature_test_arr = target_feature_test_df.values.reshape(-1, 1)
 
+            # Combine features and targets
+            train_arr = np.c_[input_feature_train_arr, target_feature_train_arr]
+            test_arr = np.c_[input_feature_test_arr, target_feature_test_arr]
+
+            # Save the preprocessor object
             save_object(
                 file_path=self.data_transformation_config.preprocessor_obj_file_path,
                 obj=preprocessor
             )
-            
-            logging.info("preprocessing pickle file saved")
-            
-            return (
-                train_arr,
-                test_arr
-            )
-            
-        except Exception as e:
-            logging.info("Exception occured in the initiate_datatransformation")
+            logging.info("Preprocessor object saved successfully.")
 
-            raise customexception(e,sys)
-            
+            return train_arr, test_arr
+
+        except Exception as e:
+            logging.error("An error occurred during data transformation.")
+            raise customexception(e, sys)
